@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+   kind: Deployment
+   metadata:
+     name: gradio-interface
+   spec:
+     replicas: 1
+     selector:
+       matchLabels:
+         app: gradio-interface
+     template:
+       metadata:
+         labels:
+           app: gradio-interface
+       spec:
+         nodeSelector:
+           kubernetes.io/hostname: interface-node
+         containers:
+         - name: gradio-interface
+           image: gradio_interface:latest
+           env:
+           - name: RABBITMQ_HOST
+             value: "rabbitmq-service"
+   ---
+   apiVersion: apps/v1
+   kind: Deployment
+   metadata:
+     name: celebrity-recognition
+   spec:
+     replicas: 1
+     selector:
+       matchLabels:
+         app: celebrity-recognition
+     template:
+       metadata:
+         labels:
+           app: celebrity-recognition
+       spec:
+         nodeSelector:
+           kubernetes.io/hostname: recognition-node
+         containers:
+         - name: celebrity-recognition
+           image: celebrity_recognition:latest
+           env:
+           - name: RABBITMQ_HOST
+             value: "rabbitmq-service"
+   

@@ -1,0 +1,106 @@
+version: '3'
+services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    deploy:
+      placement:
+        constraints:
+          - node.hostname == rabbitmq-host
+
+  gradio_interface:
+    build: ./gradio_interface
+    ports:
+      - "7860:7860"
+    environment:
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_USER=myuser
+      - RABBITMQ_PASS=mypassword
+    deploy:
+      placement:
+        constraints:
+          - node.hostname == interface-host
+
+  celebrity_recognition:
+    build: ./celebrity_recognition
+    environment:
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_USER=myuser
+      - RABBITMQ_PASS=mypassword
+    deploy:
+      placement:
+        constraints:
+          - node.hostname == recognition-host
+
+  bio_retrieval:
+    build: ./bio_retrieval
+    environment:
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_USER=myuser
+      - RABBITMQ_PASS=mypassword
+    deploy:
+      placement:
+        constraints:
+          - node.hostname == bio-host
+
+  recent_pictures_retrieval:
+    build: ./recent_pictures_retrieval
+    environment:
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_USER=myuser
+      - RABBITMQ_PASS=mypassword
+    deploy:
+      placement:
+        constraints:
+          - node.hostname == pictures-host
+
+  information_assembler:
+    build: ./information_assembler
+    environment:
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_USER=myuser
+      - RABBITMQ_PASS=mypassword
+    deploy:
+      placement:
+        constraints:
+          - node.hostname == assembler-host
+
+volumes:
+  rabbitmq_data:
+
+# Service definitions:
+# 
+# rabbitmq: RabbitMQ service for message queuing
+# - Uses the official RabbitMQ image with management plugin
+# - Deploys to the node with hostname 'rabbitmq-host'
+#
+# gradio_interface: Web interface for uploading celebrity photos
+# - Builds from ./gradio_interface directory
+# - Deploys to the node with hostname 'interface-host'
+#
+# celebrity_recognition: Service for recognizing celebrities in uploaded photos
+# - Builds from ./celebrity_recognition directory
+# - Deploys to the node with hostname 'recognition-host'
+#
+# bio_retrieval: Service for fetching celebrity biographies
+# - Builds from ./bio_retrieval directory
+# - Deploys to the node with hostname 'bio-host'
+#
+# recent_pictures_retrieval: Service for fetching recent pictures of recognized celebrities
+# - Builds from ./recent_pictures_retrieval directory
+# - Deploys to the node with hostname 'pictures-host'
+#
+# information_assembler: Service for assembling all retrieved information
+# - Builds from ./information_assembler directory
+# - Deploys to the node with hostname 'assembler-host'
+#
+# To use this compose file with Docker Swarm:
+# 1. Ensure all service directories exist with appropriate Dockerfiles and code
+# 2. Set up a Docker Swarm with multiple nodes
+# 3. Label each node with the appropriate hostname (e.g., docker node update --label-add hostname=rabbitmq-host node1)
+# 4. Deploy the stack with: docker stack deploy -c docker-compose.yml celebrity_recognition
+# 5. Access the Gradio interface at http://<interface-host-ip>:7860

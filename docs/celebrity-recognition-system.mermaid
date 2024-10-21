@@ -1,0 +1,11 @@
+graph TD
+    A[Client] --> B[Upload Service]
+    B -->|Photo| C[RabbitMQ]
+    C -->|Photo| D[Recognition Service]
+    D -->|Celebrity Name| C
+    C -->|Celebrity Name| E[Bio Service]
+    E -->|Bio| C
+    C -->|Celebrity Name| F[Recent Photos Service]
+    F -->|Recent Photos| C
+    C -->|Results| B
+    B -->|Results| A

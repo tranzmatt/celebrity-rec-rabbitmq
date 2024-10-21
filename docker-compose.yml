@@ -1,0 +1,60 @@
+version: '3'
+services:
+  rabbitmq:
+    build: ./rabbitmq_service
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+
+  gradio_interface:
+    build: ./gradio_interface
+    ports:
+      - "7860:7860"
+    environment:
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_USER=myuser
+      - RABBITMQ_PASS=mypassword
+    depends_on:
+      - rabbitmq
+
+  celebrity_recognition:
+    build: ./celebrity_recognition
+    environment:
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_USER=myuser
+      - RABBITMQ_PASS=mypassword
+      - IMAGE_RECOGNIZE_API_KEY=${IMAGE_RECOGNIZE_API_KEY}
+    depends_on:
+      - rabbitmq
+
+  bio_retrieval:
+    build: ./bio_retrieval
+    environment:
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_USER=myuser
+      - RABBITMQ_PASS=mypassword
+    depends_on:
+      - rabbitmq
+
+  recent_pictures_retrieval:
+    build: ./recent_pictures_retrieval
+    environment:
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_USER=myuser
+      - RABBITMQ_PASS=mypassword
+    depends_on:
+      - rabbitmq
+
+  information_assembler:
+    build: ./information_assembler
+    environment:
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_USER=myuser
+      - RABBITMQ_PASS=mypassword
+    depends_on:
+      - rabbitmq
+
+volumes:
+  rabbitmq_data:
