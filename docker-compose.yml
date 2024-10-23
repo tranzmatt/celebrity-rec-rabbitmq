@@ -13,18 +13,18 @@ services:
     ports:
       - "7860:7860"
     environment:
-      - RABBITMQ_HOST=rabbitmq
-      - RABBITMQ_USER=myuser
-      - RABBITMQ_PASS=mypassword
+      - RABBITMQ_HOST=${RABBITMQ_HOST}
+      - RABBITMQ_USER=${RABBITMQ_USER}
+      - RABBITMQ_PASS=${RABBITMQ_PASS}
     depends_on:
       - rabbitmq
 
   celebrity_recognition:
     build: ./celebrity_recognition
     environment:
-      - RABBITMQ_HOST=rabbitmq
-      - RABBITMQ_USER=myuser
-      - RABBITMQ_PASS=mypassword
+      - RABBITMQ_HOST=${RABBITMQ_HOST}
+      - RABBITMQ_USER=${RABBITMQ_USER}
+      - RABBITMQ_PASS=${RABBITMQ_PASS}
       - IMAGE_RECOGNIZE_API_KEY=${IMAGE_RECOGNIZE_API_KEY}
     depends_on:
       - rabbitmq
@@ -32,27 +32,27 @@ services:
   bio_retrieval:
     build: ./bio_retrieval
     environment:
-      - RABBITMQ_HOST=rabbitmq
-      - RABBITMQ_USER=myuser
-      - RABBITMQ_PASS=mypassword
+      - RABBITMQ_HOST=${RABBITMQ_HOST}
+      - RABBITMQ_USER=${RABBITMQ_USER}
+      - RABBITMQ_PASS=${RABBITMQ_PASS}
     depends_on:
       - rabbitmq
 
   recent_pictures_retrieval:
     build: ./recent_pictures_retrieval
     environment:
-      - RABBITMQ_HOST=rabbitmq
-      - RABBITMQ_USER=myuser
-      - RABBITMQ_PASS=mypassword
+      - RABBITMQ_HOST=${RABBITMQ_HOST}
+      - RABBITMQ_USER=${RABBITMQ_USER}
+      - RABBITMQ_PASS=${RABBITMQ_PASS}
     depends_on:
       - rabbitmq
 
   information_assembler:
     build: ./information_assembler
     environment:
-      - RABBITMQ_HOST=rabbitmq
-      - RABBITMQ_USER=myuser
-      - RABBITMQ_PASS=mypassword
+      - RABBITMQ_HOST=${RABBITMQ_HOST}
+      - RABBITMQ_USER=${RABBITMQ_USER}
+      - RABBITMQ_PASS=${RABBITMQ_PASS}
     depends_on:
       - rabbitmq
 
