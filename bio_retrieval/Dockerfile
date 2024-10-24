@@ -1,14 +1,14 @@
 # Use an official Python runtime as the base image
 FROM python:3.12-slim
 
-# Set the working directory in the container
-WORKDIR /app
+# Install the required packages
+RUN pip install --no-cache-dir pika pillow requests
 
 # Copy the current directory contents into the container at /app
-COPY . /app
+ADD app /app
 
-# Install the required packages
-RUN pip install --no-cache-dir pika requests
+# Set the working directory in the container
+WORKDIR /app
 
 # Run app.py when the container launches
 CMD ["python", "app.py"]

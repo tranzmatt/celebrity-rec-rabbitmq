@@ -7,6 +7,7 @@ import tempfile
 API_ENDPOINT = "https://imagerecognize.com/api/v3/"
 API_KEY = os.getenv('IMAGE_RECOGNIZE_API_KEY')
 
+
 def recognize_celebrity(image_data):
     # Create a temporary file to store the image data
     with tempfile.NamedTemporaryFile(delete=False) as temp_file:
@@ -37,25 +38,27 @@ def recognize_celebrity(image_data):
         # Clean up the temporary file
         os.unlink(temp_file_path)
 
+
 def callback(ch, method, properties, body):
     result = recognize_celebrity(body)
-    
+
     # Send result back
-    connection = pika.BlockingConnection(pika.ConnectionParameters(host='rabbitmq'))
-    channel = connection.channel()
-    channel.queue_declare(queue='result_queue')
-    channel.basic_publish(exchange='',
-                          routing_key='result_queue',
-                          body=result)
-    connection.close()
+    call_connection = pika.BlockingConnection(pika.ConnectionParameters(host='rabbitmq'))
+    call_channel = call_connection.channel()
+    call_channel.queue_declare(queue='result_queue', durable=True)
+    call_channel.basic_publish(exchange='', routing_key='result_queue', body=result)
+    call_connection.close()
+
 
 # Set up RabbitMQ connection
-connection = pika.BlockingConnection(pika.ConnectionParameters(host='rabbitmq'))
+credentials = pika.PlainCredentials(os.environ.get('RABBITMQ_USER', 'myuser'), os.environ.get('RABBITMQ_PASS', 'mypassword'))
+parameters = pika.ConnectionParameters(host=os.environ.get('RABBITMQ_HOST', 'localhost'), credentials=credentials)
+connection = pika.BlockingConnection(parameters)
+
 channel = connection.channel()
-channel.queue_declare(queue='image_queue')
-channel.basic_consume(queue='image_queue',
-                      auto_ack=True,
-                      on_message_callback=callback)
+
+channel.queue_declare(queue='image_queue', durable=True)
+channel.basic_consume(queue='image_queue', auto_ack=True, on_message_callback=callback)
 
 print('Waiting for images. To exit press CTRL+C')
 channel.start_consuming()

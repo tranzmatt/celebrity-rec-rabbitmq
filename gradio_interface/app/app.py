@@ -7,10 +7,13 @@ from PIL import Image
 import io
 
 def setup_rabbitmq():
-    connection = pika.BlockingConnection(pika.ConnectionParameters(host=os.environ.get('RABBITMQ_HOST', 'localhost')))
+    credentials = pika.PlainCredentials(os.environ.get('RABBITMQ_USER', 'myuser'), os.environ.get('RABBITMQ_PASS', 'mypassword'))
+    parameters = pika.ConnectionParameters(host=os.environ.get('RABBITMQ_HOST', 'localhost'), credentials=credentials)
+    connection = pika.BlockingConnection(parameters)
+
     channel = connection.channel()
-    channel.queue_declare(queue='upload_queue')
-    channel.queue_declare(queue='result_queue')
+    channel.queue_declare(queue='upload_queue', durable=True)
+    channel.queue_declare(queue='result_queue', durable=True)
     return connection, channel
 
 def process_image(image):
