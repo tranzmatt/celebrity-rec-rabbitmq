@@ -26,4 +26,4 @@ ADD app /app
 WORKDIR /app
 
 # Run app.py when the container launches
-CMD ["python", "app.py"]
+CMD ["python", "-u", "app.py"]

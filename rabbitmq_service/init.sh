@@ -7,7 +7,7 @@ rabbitmq-server &
 sleep 15
 
 # Create queues
-rabbitmqctl declare_queue name=upload_queue
+rabbitmqctl declare_queue name=image_queue
 rabbitmqctl declare_queue name=name_queue
 rabbitmqctl declare_queue name=bio_queue
 rabbitmqctl declare_queue name=pictures_queue

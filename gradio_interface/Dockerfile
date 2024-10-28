@@ -14,4 +14,4 @@ WORKDIR /app
 EXPOSE 7860
 
 # Run app.py when the container launches
-CMD ["python", "app.py"]
+CMD ["python", "-u", "app.py"]

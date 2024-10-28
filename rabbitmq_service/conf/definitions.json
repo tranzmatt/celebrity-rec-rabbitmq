@@ -22,7 +22,7 @@
   ],
   "queues": [
     {
-      "name": "upload_queue",
+      "name": "image_queue",
       "vhost": "/",
       "durable": true,
       "auto_delete": false,

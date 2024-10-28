@@ -25,14 +25,18 @@ def recognize_celebrity(image_data):
         }
         r = requests.post(url=API_ENDPOINT, data=d, files=f)
         response = json.loads(r.text)
+        print(f"We got response {response}")
         try:
             objects = response['data']['objects']
             if objects:
                 highest_confidence_object = max(objects, key=lambda obj: obj['confidence'])
+                print(highest_confidence_object['name'])
                 return highest_confidence_object['name']
             else:
+                print("No celebrities found in the image.")
                 return "No celebrities found in the image."
-        except KeyError:
+        except KeyError as e:
+            print(f"KeyError {e}")
             return "Unexpected response structure."
     finally:
         # Clean up the temporary file
@@ -40,10 +44,12 @@ def recognize_celebrity(image_data):
 
 
 def callback(ch, method, properties, body):
+    print('Calling recognize_celebrity')
     result = recognize_celebrity(body)
+    print(f'Sending result: {result}')
 
     # Send result back
-    call_connection = pika.BlockingConnection(pika.ConnectionParameters(host='rabbitmq'))
+    call_connection = pika.BlockingConnection(parameters)
     call_channel = call_connection.channel()
     call_channel.queue_declare(queue='result_queue', durable=True)
     call_channel.basic_publish(exchange='', routing_key='result_queue', body=result)
@@ -56,7 +62,6 @@ parameters = pika.ConnectionParameters(host=os.environ.get('RABBITMQ_HOST', 'loc
 connection = pika.BlockingConnection(parameters)
 
 channel = connection.channel()
-
 channel.queue_declare(queue='image_queue', durable=True)
 channel.basic_consume(queue='image_queue', auto_ack=True, on_message_callback=callback)
 
