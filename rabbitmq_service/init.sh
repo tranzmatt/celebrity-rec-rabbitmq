@@ -13,6 +13,7 @@ rabbitmqctl exchange_declare celebrity_names fanout --durable
 rabbitmqctl queue_declare image_queue --durable
 rabbitmqctl queue_declare name_queue --durable
 rabbitmqctl queue_declare bio_queue --durable
+rabbitmqctl queue_declare social_queue --durable
 rabbitmqctl queue_declare pictures_queue --durable
 rabbitmqctl queue_declare result_queue --durable
 
@@ -20,6 +21,7 @@ rabbitmqctl queue_declare result_queue --durable
 rabbitmqctl purge_queue image_queue
 rabbitmqctl purge_queue name_queue
 rabbitmqctl purge_queue bio_queue
+rabbitmqctl purge_queue social_queue
 rabbitmqctl purge_queue pictures_queue
 rabbitmqctl purge_queue result_queue
 

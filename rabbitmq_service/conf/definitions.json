@@ -53,6 +53,13 @@
       "auto_delete": false,
       "arguments": {}
     },
+        {
+      "name": "social_queue",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    },
     {
       "name": "pictures_queue",
       "vhost": "/",
