@@ -13,7 +13,7 @@ def create_rabbitmq_connection():
         os.environ.get('RABBITMQ_PASS', 'mypassword')
     )
     parameters = pika.ConnectionParameters(
-        host=os.environ.get('RABBITMQ_HOST', 'localhost'),
+        host=os.environ.get('RABBITMQ_HOST', 'rabbitmq'),
         credentials=credentials
     )
     return pika.BlockingConnection(parameters)

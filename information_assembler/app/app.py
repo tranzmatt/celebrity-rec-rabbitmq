@@ -25,7 +25,7 @@ def callback(ch, method, properties, body):
 
 
 credentials = pika.PlainCredentials(os.environ.get('RABBITMQ_USER', 'myuser'), os.environ.get('RABBITMQ_PASS', 'mypassword'))
-parameters = pika.ConnectionParameters(host=os.environ.get('RABBITMQ_HOST', 'localhost'), credentials=credentials)
+parameters = pika.ConnectionParameters(host=os.environ.get('RABBITMQ_HOST', 'rabbitmq'), credentials=credentials)
 connection = pika.BlockingConnection(parameters)
 
 channel = connection.channel()

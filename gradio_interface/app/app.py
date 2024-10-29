@@ -14,7 +14,7 @@ def create_rabbitmq_connection():
         os.environ.get('RABBITMQ_PASS', 'mypassword')
     )
     parameters = pika.ConnectionParameters(
-        host=os.environ.get('RABBITMQ_HOST', 'localhost'),
+        host=os.environ.get('RABBITMQ_HOST', 'rabbitmq'),
         credentials=credentials
     )
     return pika.BlockingConnection(parameters)
@@ -23,6 +23,7 @@ class CelebRecognitionUI:
     def __init__(self):
         self.current_name = ""
         self.current_bio = ""
+        self.current_social = ""
 
     async def listen_for_names(self):
         while True:
@@ -52,6 +53,36 @@ class CelebRecognitionUI:
 
             except Exception as e:
                 print(f"Name listener error: {e}. Retrying in 5 seconds...")
+                time.sleep(5)
+
+    async def listen_for_social(self):
+        while True:
+            try:
+                connection = create_rabbitmq_connection()
+                channel = connection.channel()
+                channel.queue_declare(queue='social_queue', durable=True)
+
+                def callback(ch, method, properties, body):
+                    try:
+                        social = body.decode()
+                        print(f"Received name: {social}")
+                        self.current_social = social
+                        print(f"Updated current_name to: {self.current_social}")
+                        ch.basic_ack(delivery_tag=method.delivery_tag)
+                    except Exception as e:
+                        print(f"Error processing name: {e}")
+
+                channel.basic_consume(
+                    queue='social_queue',
+                    on_message_callback=callback,
+                    auto_ack=False
+                )
+
+                print("Listening for social on social_queue...")
+                channel.start_consuming()
+
+            except Exception as e:
+                print(f"Social listener error: {e}. Retrying in 5 seconds...")
                 time.sleep(5)
 
     async def listen_for_bios(self):
@@ -159,6 +190,9 @@ with gr.Blocks(title="Celebrity Recognition System") as iface:
         name_output = gr.Textbox(label="Celebrity Name", value="")
         bio_output = gr.Textbox(label="Celebrity Biography", value="")
 
+    with gr.Row():
+        social_output = gr.Textbox(label="Celebrity Social Media", value="")
+
     status_output = gr.Textbox(label="Status", value="Ready")
     submit_btn = gr.Button("Submit")
 
@@ -168,16 +202,17 @@ with gr.Blocks(title="Celebrity Recognition System") as iface:
     # Start the listeners
     threading.Thread(target=lambda: asyncio.run(ui.listen_for_names()), daemon=True).start()
     threading.Thread(target=lambda: asyncio.run(ui.listen_for_bios()), daemon=True).start()
+    threading.Thread(target=lambda: asyncio.run(ui.listen_for_social()), daemon=True).start()
 
     # Set up the events
     submit_btn.click(
         fn=ui.process_image,
         inputs=image_input,
-        outputs=[status_output, name_output, bio_output]
+        outputs=[status_output, name_output, bio_output, social_output]
     )
 
     # Periodically update name and bio outputs using the generator
-    iface.load(ui.get_current_values, inputs=None, outputs=[name_output, bio_output])
+    iface.load(ui.get_current_values, inputs=None, outputs=[name_output, bio_output, social_output])
 
 if __name__ == "__main__":
     iface.launch(server_name="0.0.0.0", server_port=7860)
