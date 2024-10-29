@@ -20,34 +20,34 @@ def create_rabbitmq_connection():
     return pika.BlockingConnection(parameters)
 
 class CelebRecognitionUI:
-    def __init__(self, name_state, bio_state):
-        self.name_state = name_state
-        self.bio_state = bio_state
+    def __init__(self):
+        self.current_name = ""
+        self.current_bio = ""
 
     async def listen_for_names(self):
         while True:
             try:
                 connection = create_rabbitmq_connection()
                 channel = connection.channel()
-                channel.queue_declare(queue='result_queue', durable=True)
+                channel.queue_declare(queue='name_queue', durable=True)
 
                 def callback(ch, method, properties, body):
                     try:
                         name = body.decode()
                         print(f"Received name: {name}")
-                        # Update name state
-                        self.name_state.value = name
+                        self.current_name = name
+                        print(f"Updated current_name to: {self.current_name}")
                         ch.basic_ack(delivery_tag=method.delivery_tag)
                     except Exception as e:
                         print(f"Error processing name: {e}")
 
                 channel.basic_consume(
-                    queue='result_queue',
+                    queue='name_queue',
                     on_message_callback=callback,
                     auto_ack=False
                 )
 
-                print("Listening for names on result_queue...")
+                print("Listening for names on name_queue...")
                 channel.start_consuming()
 
             except Exception as e:
@@ -87,8 +87,9 @@ class CelebRecognitionUI:
 
                             bio_text = " | ".join(bio_parts)
 
-                        # Update bio state
-                        self.bio_state.value = bio_text
+                        print(f'Setting bio text: {bio_text}')
+                        self.current_bio = bio_text
+                        print(f"Updated current_bio to: {self.current_bio}")
                         ch.basic_ack(delivery_tag=method.delivery_tag)
 
                     except Exception as e:
@@ -109,11 +110,10 @@ class CelebRecognitionUI:
 
     def process_image(self, image):
         if image is None:
-            return "No image provided"
+            return "No image provided", "", ""
 
         try:
             print("Processing image...")
-
             img_byte_arr = io.BytesIO()
             image.save(img_byte_arr, format='PNG')
             img_byte_arr = img_byte_arr.getvalue()
@@ -133,11 +133,22 @@ class CelebRecognitionUI:
             connection.close()
             print("Image sent to processing queue")
 
-            return "Processing image..."
+            # Clear the current values
+            self.current_name = ""
+            self.current_bio = ""
+
+            return "Processing image...", "", ""
 
         except Exception as e:
             print(f"Error processing image: {e}")
-            return f"Error: {str(e)}"
+            return f"Error: {str(e)}", "", ""
+
+    # Generator function for real-time updates
+    def get_current_values(self):
+        while True:
+            yield self.current_name, self.current_bio
+            time.sleep(1)  # Update every second
+
 
 # Create the Gradio interface
 with gr.Blocks(title="Celebrity Recognition System") as iface:
@@ -151,22 +162,8 @@ with gr.Blocks(title="Celebrity Recognition System") as iface:
     status_output = gr.Textbox(label="Status", value="Ready")
     submit_btn = gr.Button("Submit")
 
-    # States to store name and bio
-    name_state = gr.State("")
-    bio_state = gr.State("")
-
     # Create instance of our UI class
-    ui = CelebRecognitionUI(name_state, bio_state)
-
-    # Define a wrapper function to update name and bio in the UI from states
-    def refresh_ui():
-        name = name_state.value
-        bio = bio_state.value
-        name_output.update(value=name)
-        bio_output.update(value=bio)
-
-    # Set up a timer to check for name and bio updates every second
-    timer = gr.Timer(1.0, refresh_ui)
+    ui = CelebRecognitionUI()
 
     # Start the listeners
     threading.Thread(target=lambda: asyncio.run(ui.listen_for_names()), daemon=True).start()
@@ -176,8 +173,11 @@ with gr.Blocks(title="Celebrity Recognition System") as iface:
     submit_btn.click(
         fn=ui.process_image,
         inputs=image_input,
-        outputs=status_output
+        outputs=[status_output, name_output, bio_output]
     )
+
+    # Periodically update name and bio outputs using the generator
+    iface.load(ui.get_current_values, inputs=None, outputs=[name_output, bio_output])
 
 if __name__ == "__main__":
     iface.launch(server_name="0.0.0.0", server_port=7860)

@@ -95,8 +95,14 @@ def main():
     connection = create_rabbitmq_connection()
     channel = connection.channel()
     
-    # Declare the queues we need
+    # Declare and purge the queue before starting consumption
     channel.queue_declare(queue='image_queue', durable=True)
+    try:
+        # Purge existing messages
+        channel.queue_purge(queue='image_queue')
+        print("Successfully purged image_queue")
+    except Exception as e:
+        print(f"Error purging queue: {e}")
     
     # Set up consumer
     channel.basic_consume(

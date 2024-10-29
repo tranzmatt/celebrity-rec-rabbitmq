@@ -15,3 +15,4 @@ EXPOSE 7860
 
 # Run app.py when the container launches
 CMD ["python", "-u", "app.py"]
+#CMD ["python", "-u", "test.py"]
