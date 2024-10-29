@@ -5,76 +5,179 @@ import json
 from PIL import Image
 import io
 import time
+import threading
+import asyncio
 
-response = None  # Global variable to store the result
+def create_rabbitmq_connection():
+    credentials = pika.PlainCredentials(
+        os.environ.get('RABBITMQ_USER', 'myuser'),
+        os.environ.get('RABBITMQ_PASS', 'mypassword')
+    )
+    parameters = pika.ConnectionParameters(
+        host=os.environ.get('RABBITMQ_HOST', 'localhost'),
+        credentials=credentials
+    )
+    return pika.BlockingConnection(parameters)
 
+class CelebRecognitionUI:
+    def __init__(self, name_state, bio_state):
+        self.name_state = name_state
+        self.bio_state = bio_state
 
-def callback(ch, method, properties, body):
-    global response
-    # Log the body for debugging
-    print(f"Received body: {body}")
+    async def listen_for_names(self):
+        while True:
+            try:
+                connection = create_rabbitmq_connection()
+                channel = connection.channel()
+                channel.queue_declare(queue='result_queue', durable=True)
 
-    # Check if body is not empty and decode it
-    if body:
+                def callback(ch, method, properties, body):
+                    try:
+                        name = body.decode()
+                        print(f"Received name: {name}")
+                        # Update name state
+                        self.name_state.value = name
+                        ch.basic_ack(delivery_tag=method.delivery_tag)
+                    except Exception as e:
+                        print(f"Error processing name: {e}")
+
+                channel.basic_consume(
+                    queue='result_queue',
+                    on_message_callback=callback,
+                    auto_ack=False
+                )
+
+                print("Listening for names on result_queue...")
+                channel.start_consuming()
+
+            except Exception as e:
+                print(f"Name listener error: {e}. Retrying in 5 seconds...")
+                time.sleep(5)
+
+    async def listen_for_bios(self):
+        while True:
+            try:
+                connection = create_rabbitmq_connection()
+                channel = connection.channel()
+                channel.queue_declare(queue='bio_queue', durable=True)
+
+                def callback(ch, method, properties, body):
+                    try:
+                        bio_data = json.loads(body)
+                        print(f"Received bio: {bio_data}")
+
+                        if "error" in bio_data and bio_data["error"]:
+                            bio_text = f"Error: {bio_data.get('message', 'Unknown error')}"
+                        else:
+                            personal = bio_data.get("personal_info", {})
+                            career = bio_data.get("career", {})
+                            relationships = bio_data.get("relationships", {})
+
+                            bio_parts = []
+                            if personal.get("birth"):
+                                bio_parts.append(f"Birth: {personal['birth']}")
+                            if personal.get("occupation"):
+                                bio_parts.append(f"Occupation: {personal['occupation']}")
+                            if personal.get("years_active"):
+                                bio_parts.append(f"Years active: {personal['years_active']}")
+                            if career.get("has_awards"):
+                                bio_parts.append("Has received awards and accolades")
+                            if relationships.get("partner"):
+                                bio_parts.append(f"Partner: {relationships['partner']}")
+
+                            bio_text = " | ".join(bio_parts)
+
+                        # Update bio state
+                        self.bio_state.value = bio_text
+                        ch.basic_ack(delivery_tag=method.delivery_tag)
+
+                    except Exception as e:
+                        print(f"Error processing bio: {e}")
+
+                channel.basic_consume(
+                    queue='bio_queue',
+                    on_message_callback=callback,
+                    auto_ack=False
+                )
+
+                print("Listening for bios on bio_queue...")
+                channel.start_consuming()
+
+            except Exception as e:
+                print(f"Bio listener error: {e}. Retrying in 5 seconds...")
+                time.sleep(5)
+
+    def process_image(self, image):
+        if image is None:
+            return "No image provided"
+
         try:
-            response = body.decode()
-            print(f"Decoded response: {response}")
-        except UnicodeDecodeError as e:
-            print(f"Failed to decode response: {e}")
-            response = "Error: Unable to decode response"
-    else:
-        print("Received empty body")
-        response = "Error: Empty response received"
+            print("Processing image...")
 
-    ch.basic_ack(delivery_tag=method.delivery_tag)
+            img_byte_arr = io.BytesIO()
+            image.save(img_byte_arr, format='PNG')
+            img_byte_arr = img_byte_arr.getvalue()
 
-def process_image(image):
-    global response
-    response = None  # Reset the response for each image
+            connection = create_rabbitmq_connection()
+            channel = connection.channel()
 
-    # Convert image to bytes
-    img_byte_arr = io.BytesIO()
-    image.save(img_byte_arr, format='PNG')
-    img_byte_arr = img_byte_arr.getvalue()
+            channel.basic_publish(
+                exchange='',
+                routing_key='image_queue',
+                body=img_byte_arr,
+                properties=pika.BasicProperties(
+                    delivery_mode=2
+                )
+            )
 
-    # Send image to recognition service
-    credentials = pika.PlainCredentials(os.environ.get('RABBITMQ_USER', 'myuser'), os.environ.get('RABBITMQ_PASS', 'mypassword'))
-    parameters = pika.ConnectionParameters(host=os.environ.get('RABBITMQ_HOST', 'localhost'), credentials=credentials)
-    connection = pika.BlockingConnection(parameters)
+            connection.close()
+            print("Image sent to processing queue")
 
-    channel = connection.channel()
-    channel.queue_declare(queue='image_queue', durable=True)
-    channel.queue_declare(queue='result_queue', durable=True)
+            return "Processing image..."
 
-    channel.basic_publish(exchange='', routing_key='image_queue', body=img_byte_arr)
+        except Exception as e:
+            print(f"Error processing image: {e}")
+            return f"Error: {str(e)}"
 
-    # Start consuming the result
-    channel.basic_consume(queue='result_queue', on_message_callback=callback, auto_ack=False)
+# Create the Gradio interface
+with gr.Blocks(title="Celebrity Recognition System") as iface:
+    with gr.Row():
+        image_input = gr.Image(type="pil", label="Upload Image")
 
-    print("Waiting for result...")
-    # Check for result for up to 30 seconds
-    for _ in range(30):
-        connection.process_data_events(time_limit=1)  # Wait for a message for 1 second
-        if response:
-            break  # Exit loop if a response is received
+    with gr.Row():
+        name_output = gr.Textbox(label="Celebrity Name", value="")
+        bio_output = gr.Textbox(label="Celebrity Biography", value="")
 
-    connection.close()
+    status_output = gr.Textbox(label="Status", value="Ready")
+    submit_btn = gr.Button("Submit")
 
-    # Debugging step: Print the raw response
-    print(f"Received response: {response}")
+    # States to store name and bio
+    name_state = gr.State("")
+    bio_state = gr.State("")
 
-    if response:
-        return f"{response}"
-    else:
-        return "No result received after timeout"
+    # Create instance of our UI class
+    ui = CelebRecognitionUI(name_state, bio_state)
 
-iface = gr.Interface(
-    fn=process_image,
-    inputs=gr.Image(type="pil"),
-    outputs="text",
-    title="Celebrity Recognition System"
-)
+    # Define a wrapper function to update name and bio in the UI from states
+    def refresh_ui():
+        name = name_state.value
+        bio = bio_state.value
+        name_output.update(value=name)
+        bio_output.update(value=bio)
+
+    # Set up a timer to check for name and bio updates every second
+    timer = gr.Timer(1.0, refresh_ui)
+
+    # Start the listeners
+    threading.Thread(target=lambda: asyncio.run(ui.listen_for_names()), daemon=True).start()
+    threading.Thread(target=lambda: asyncio.run(ui.listen_for_bios()), daemon=True).start()
+
+    # Set up the events
+    submit_btn.click(
+        fn=ui.process_image,
+        inputs=image_input,
+        outputs=status_output
+    )
 
 if __name__ == "__main__":
     iface.launch(server_name="0.0.0.0", server_port=7860)
-

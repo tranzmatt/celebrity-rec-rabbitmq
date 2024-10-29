@@ -7,6 +7,7 @@ def callback(ch, method, properties, body):
     global celebrity_name, bio, recent_pictures
 
     if method.routing_key == 'name_queue':
+        print(f"assembly firing on name_queue")
         celebrity_name = body.decode()
     elif method.routing_key == 'bio_queue':
         bio = body.decode()

@@ -20,6 +20,17 @@
       "read": ".*"
     }
   ],
+  "exchanges": [
+    {
+      "name": "celebrity_names",
+      "vhost": "/",
+      "type": "fanout",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    }
+  ],
   "queues": [
     {
       "name": "image_queue",
@@ -54,6 +65,16 @@
       "vhost": "/",
       "durable": true,
       "auto_delete": false,
+      "arguments": {}
+    }
+  ],
+  "bindings": [
+    {
+      "source": "celebrity_names",
+      "vhost": "/",
+      "destination": "name_queue",
+      "destination_type": "queue",
+      "routing_key": "",
       "arguments": {}
     }
   ]

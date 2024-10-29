@@ -9,6 +9,7 @@ def fetch_recent_photos(name):
     return [f"photo_url_{i}.jpg" for i in range(5)]
 
 def callback(ch, method, properties, body):
+    print(f"recent_pictures_retrieval firing on name_queue")
     celebrity_name = body.decode()
     recent_photos = fetch_recent_photos(celebrity_name)
     

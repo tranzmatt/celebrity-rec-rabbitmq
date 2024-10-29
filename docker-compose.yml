@@ -52,6 +52,7 @@ services:
       - RABBITMQ_HOST=${RABBITMQ_HOST}
       - RABBITMQ_USER=${RABBITMQ_USER}
       - RABBITMQ_PASS=${RABBITMQ_PASS}
+      - RAPID_API_KEY=${RAPID_API_KEY}
     depends_on:
       - rabbitmq
     volumes:
@@ -59,33 +60,33 @@ services:
     entrypoint: ["/wait-for-it.sh", "rabbitmq:5672", "--", "python", "/app/app.py"]
     restart: unless-stopped
 
-  recent_pictures_retrieval:
-    build: ./recent_pictures_retrieval
-    environment:
-      - PYTHONUNBUFFERED=1
-      - RABBITMQ_HOST=${RABBITMQ_HOST}
-      - RABBITMQ_USER=${RABBITMQ_USER}
-      - RABBITMQ_PASS=${RABBITMQ_PASS}
-    depends_on:
-      - rabbitmq
-    volumes:
-      - ./wait-for-it.sh:/wait-for-it.sh
-    entrypoint: ["/wait-for-it.sh", "rabbitmq:5672", "--", "python", "/app/app.py"]
-    restart: unless-stopped
+#  recent_pictures_retrieval:
+#    build: ./recent_pictures_retrieval
+#    environment:
+#      - PYTHONUNBUFFERED=1
+#      - RABBITMQ_HOST=${RABBITMQ_HOST}
+#      - RABBITMQ_USER=${RABBITMQ_USER}
+#      - RABBITMQ_PASS=${RABBITMQ_PASS}
+#    depends_on:
+#      - rabbitmq
+#    volumes:
+#      - ./wait-for-it.sh:/wait-for-it.sh
+#    entrypoint: ["/wait-for-it.sh", "rabbitmq:5672", "--", "python", "/app/app.py"]
+#    restart: unless-stopped
 
-  information_assembler:
-    build: ./information_assembler
-    environment:
-      - PYTHONUNBUFFERED=1
-      - RABBITMQ_HOST=${RABBITMQ_HOST}
-      - RABBITMQ_USER=${RABBITMQ_USER}
-      - RABBITMQ_PASS=${RABBITMQ_PASS}
-    depends_on:
-      - rabbitmq
-    volumes:
-      - ./wait-for-it.sh:/wait-for-it.sh
-    entrypoint: ["/wait-for-it.sh", "rabbitmq:5672", "--", "python", "/app/app.py"]
-    restart: unless-stopped
+#  information_assembler:
+#    build: ./information_assembler
+#    environment:
+#      - PYTHONUNBUFFERED=1
+#      - RABBITMQ_HOST=${RABBITMQ_HOST}
+#      - RABBITMQ_USER=${RABBITMQ_USER}
+#      - RABBITMQ_PASS=${RABBITMQ_PASS}
+#    depends_on:
+#      - rabbitmq
+#    volumes:
+#      - ./wait-for-it.sh:/wait-for-it.sh
+#    entrypoint: ["/wait-for-it.sh", "rabbitmq:5672", "--", "python", "/app/app.py"]
+#    restart: unless-stopped
 
 volumes:
   rabbitmq_data:
