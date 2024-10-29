@@ -141,7 +141,7 @@ class CelebRecognitionUI:
 
     def process_image(self, image):
         if image is None:
-            return "No image provided", "", ""
+            return "No image provided", "", "", ""
 
         try:
             print("Processing image...")
@@ -167,17 +167,18 @@ class CelebRecognitionUI:
             # Clear the current values
             self.current_name = ""
             self.current_bio = ""
+            self.current_social = ""
 
-            return "Processing image...", "", ""
+            return "Processing image...", "", "", ""
 
         except Exception as e:
             print(f"Error processing image: {e}")
-            return f"Error: {str(e)}", "", ""
+            return f"Error: {str(e)}", "", "", ""
 
     # Generator function for real-time updates
     def get_current_values(self):
         while True:
-            yield self.current_name, self.current_bio
+            yield self.current_name, self.current_bio, self.current_social
             time.sleep(1)  # Update every second
 
 
@@ -190,9 +191,7 @@ with gr.Blocks(title="Celebrity Recognition System") as iface:
         name_output = gr.Textbox(label="Celebrity Name", value="")
         bio_output = gr.Textbox(label="Celebrity Biography", value="")
 
-    with gr.Row():
-        social_output = gr.Textbox(label="Celebrity Social Media", value="")
-
+    social_output = gr.Textbox(label="Celebrity Social Media", value="")
     status_output = gr.Textbox(label="Status", value="Ready")
     submit_btn = gr.Button("Submit")
 
